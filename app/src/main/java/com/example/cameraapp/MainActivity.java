@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.*;
+import android.util.Log;
 import android.view.TextureView;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -57,17 +58,23 @@ public class MainActivity extends AppCompatActivity {
         // single capture photo on button click
         btnCapture.setOnClickListener(v -> {
             cameraHelper.capturePhoto();
-            byte[] lastImage = cameraHelper.getLastCapturedImage();
-            if (lastImage != null) {
-                StorageHelper.saveImageToStorage(MainActivity.this, lastImage);
-                ImageHelper.showCapturedImage(MainActivity.this, lastImage, previewImage);
-            }
+           // byte[] lastImage = cameraHelper.getLastCapturedImage();
+            //if (lastImage != null) {
+             //   StorageHelper.saveImageToStorage(MainActivity.this, lastImage);
+              //  ImageHelper.showCapturedImage(MainActivity.this, lastImage, previewImage);
+            //}
         });
 
         //burst capture photo
         burstCapture.setOnClickListener(v->{
             try {
-                cameraHelper.captureBurstPhoto(10);
+                cameraHelper.captureBurstPhoto(5);
+//                byte[] burstImage = cameraHelper.getLastCapturedImage();
+//                if(burstImage!=null){
+//                    StorageHelper.saveImageToStorage(MainActivity.this, burstImage);
+//                    ImageHelper.showCapturedImage(MainActivity.this, burstImage, previewImage);
+//                }
+                Log.d("burst","burst mode testing");
             } catch (CameraAccessException e) {
                 throw new RuntimeException(e);
             }

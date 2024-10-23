@@ -9,6 +9,7 @@ import android.hardware.camera2.*;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
@@ -19,9 +20,13 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 
 public class CameraHelper {
 
@@ -35,13 +40,33 @@ public class CameraHelper {
     private TextureView textureView;
     private byte[] lastCapturedImage;
     private Handler backgroundHandler;
+    private HandlerThread handlerThread;
 
     private final int CAMERA_REQUEST_CODE = 101;
 
     public CameraHelper(Context context, TextureView textureView) {
         this.context = context;
         this.textureView = textureView;
+        startBackgroundThread();
     }
+    // Start the background thread and its handler
+    private void startBackgroundThread() {
+        handlerThread = new HandlerThread("CameraBackground");
+        handlerThread.start();
+        backgroundHandler = new Handler(handlerThread.getLooper());
+    }
+    // Stop the background thread
+    public void stopBackgroundThread() {
+        handlerThread.quitSafely();
+        try {
+            handlerThread.join();
+            handlerThread = null;
+            backgroundHandler = null;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
         @Override
@@ -115,19 +140,21 @@ public class CameraHelper {
             String cameraId = manager.getCameraIdList()[0]; // Rear camera
             CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
             imageDimension = new Size(1920, 1080); // Default size
-            imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(), ImageFormat.JPEG, 3);
+            int maxImage =5;
+            imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(), ImageFormat.JPEG, maxImage);
 
             // Set the image reader listener
-            imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
-                @Override
-                public void onImageAvailable(ImageReader reader) {
-                    Image image = reader.acquireLatestImage();
-                    if (image != null) {
-                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-                        lastCapturedImage = new byte[buffer.remaining()];
-                        buffer.get(lastCapturedImage);
-                        image.close();
-                    }
+            imageReader.setOnImageAvailableListener(reader -> {
+                Image image = reader.acquireLatestImage();
+                if (image != null) {
+                    ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                    lastCapturedImage = new byte[buffer.remaining()];
+                    buffer.get(lastCapturedImage);
+
+                    // Save the image with a unique filename
+                    String filename = generateUniqueFilename(); // Generate a unique filename
+                    StorageHelper.saveImageToStorage(context,lastCapturedImage,filename);
+                    image.close();
                 }
             }, null);
 
@@ -156,16 +183,11 @@ public class CameraHelper {
 
             cameraCaptureSession.captureBurst(captureRequestList, new CameraCaptureSession.CaptureCallback() {
                 @Override
-                public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
-                     Log.d("Burst", "Burst photo captured");
-                }
-
-                @Override
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                     Log.d("Burst", "Burst capture sequence completed.");
                 }
 
-            }, null);
+            }, backgroundHandler);
         }
         catch (CameraAccessException e){
             e.printStackTrace();
@@ -181,6 +203,15 @@ public class CameraHelper {
             e.printStackTrace();
         }
     }
+    private int imageCounter = 0; // Counter for burst images
+
+    public String generateUniqueFilename() {
+        TimeZone timeZoneInd = TimeZone.getTimeZone("Asia/Kolkata");
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
+        dateFormat.setTimeZone(timeZoneInd);
+        String timeStamp = dateFormat.format(new Date());
+        return "IMG_" + timeStamp + "_" + (imageCounter++) + ".jpg"; // Append counter for uniqueness
+    }
 
     public byte[] getLastCapturedImage() {
         return lastCapturedImage;
@@ -191,5 +222,6 @@ public class CameraHelper {
             cameraDevice.close();
             cameraDevice = null;
         }
+        stopBackgroundThread(); // Stop the background thread
     }
 }
