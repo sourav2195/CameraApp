@@ -65,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         //burst capture photo
-        btnCapture.setOnClickListener(v->{
+        burstCapture.setOnClickListener(v->{
             try {
                 cameraHelper.captureBurstPhoto(10);
             } catch (CameraAccessException e) {

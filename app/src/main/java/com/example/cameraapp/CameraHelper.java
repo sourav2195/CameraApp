@@ -43,38 +43,6 @@ public class CameraHelper {
         this.textureView = textureView;
     }
 
-    public void openCamera(CameraManager manager) {
-        try {
-            String cameraId = manager.getCameraIdList()[0]; // Rear camera
-            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
-            imageDimension = new Size(1920, 1080); // Default size
-            imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(), ImageFormat.JPEG, 1);
-
-            // Set the image reader listener
-            imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
-                @Override
-                public void onImageAvailable(ImageReader reader) {
-                    Image image = reader.acquireLatestImage();
-                    if (image != null) {
-                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-                        lastCapturedImage = new byte[buffer.remaining()];
-                        buffer.get(lastCapturedImage);
-                        image.close();
-                    }
-                }
-            }, null);
-
-            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions((MainActivity) context, new String[]{Manifest.permission.CAMERA}, CAMERA_REQUEST_CODE);
-                return;
-            }
-            manager.openCamera(cameraId, stateCallback, null);
-
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
         @Override
         public void onOpened(CameraDevice camera) {
@@ -142,6 +110,38 @@ public class CameraHelper {
         }
     }
 
+    public void openCamera(CameraManager manager) {
+        try {
+            String cameraId = manager.getCameraIdList()[0]; // Rear camera
+            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+            imageDimension = new Size(1920, 1080); // Default size
+            imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(), ImageFormat.JPEG, 3);
+
+            // Set the image reader listener
+            imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
+                @Override
+                public void onImageAvailable(ImageReader reader) {
+                    Image image = reader.acquireLatestImage();
+                    if (image != null) {
+                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                        lastCapturedImage = new byte[buffer.remaining()];
+                        buffer.get(lastCapturedImage);
+                        image.close();
+                    }
+                }
+            }, null);
+
+            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions((MainActivity) context, new String[]{Manifest.permission.CAMERA}, CAMERA_REQUEST_CODE);
+                return;
+            }
+            manager.openCamera(cameraId, stateCallback, null);
+
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void captureBurstPhoto(int numPhoto) throws CameraAccessException {
         //create a list of capture requests for burst mode
         try {
@@ -157,7 +157,7 @@ public class CameraHelper {
             cameraCaptureSession.captureBurst(captureRequestList, new CameraCaptureSession.CaptureCallback() {
                 @Override
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
-                    Log.d("Burst", "Burst photo captured");
+                     Log.d("Burst", "Burst photo captured");
                 }
 
                 @Override
