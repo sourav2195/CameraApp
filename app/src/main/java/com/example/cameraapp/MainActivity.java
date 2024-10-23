@@ -14,8 +14,10 @@ public class MainActivity extends AppCompatActivity {
 
     private TextureView textureView;
     private Button btnCapture;
+    private Button burstCapture;
     private ImageView previewImage;
     private CameraHelper cameraHelper;
+
     //private final byte[] lastImage = cameraHelper.getLastCapturedImage();
 
 
@@ -27,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
 
         textureView = findViewById(R.id.textureView);
         btnCapture = findViewById(R.id.btnCapture);
+        burstCapture = findViewById(R.id.btnBurstCapture);
         previewImage = findViewById(R.id.previewImage);
 
         cameraHelper = new CameraHelper(this, textureView);
@@ -51,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
             public void onSurfaceTextureUpdated(SurfaceTexture surface) {
             }
         });
-        // Capture photo on button click
+        // single capture photo on button click
         btnCapture.setOnClickListener(v -> {
             cameraHelper.capturePhoto();
             byte[] lastImage = cameraHelper.getLastCapturedImage();
@@ -59,6 +62,16 @@ public class MainActivity extends AppCompatActivity {
                 StorageHelper.saveImageToStorage(MainActivity.this, lastImage);
                 ImageHelper.showCapturedImage(MainActivity.this, lastImage, previewImage);
             }
+        });
+
+        //burst capture photo
+        btnCapture.setOnClickListener(v->{
+            try {
+                cameraHelper.captureBurstPhoto(10);
+            } catch (CameraAccessException e) {
+                throw new RuntimeException(e);
+            }
+
         });
 
         // Show full image on preview click

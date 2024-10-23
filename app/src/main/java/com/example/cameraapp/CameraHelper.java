@@ -9,6 +9,7 @@ import android.hardware.camera2.*;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Handler;
+import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
@@ -18,7 +19,9 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class CameraHelper {
 
@@ -31,6 +34,7 @@ public class CameraHelper {
     private Context context;
     private TextureView textureView;
     private byte[] lastCapturedImage;
+    private Handler backgroundHandler;
 
     private final int CAMERA_REQUEST_CODE = 101;
 
@@ -132,8 +136,38 @@ public class CameraHelper {
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
                     Toast.makeText(context, "Photo Captured", Toast.LENGTH_SHORT).show();
                 }
-            }, null);
+            }, backgroundHandler);
         } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void captureBurstPhoto(int numPhoto) throws CameraAccessException {
+        //create a list of capture requests for burst mode
+        try {
+            List<CaptureRequest> captureRequestList = new ArrayList<>();
+            for (int i = 0; i < numPhoto; i++) {
+                CaptureRequest.Builder burstBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+                burstBuilder.addTarget(imageReader.getSurface());
+                burstBuilder.set(CaptureRequest.CONTROL_MODE,CameraMetadata.CONTROL_MODE_AUTO);
+                captureRequestList.add(burstBuilder.build());
+            }
+            //capture the burst photo
+
+            cameraCaptureSession.captureBurst(captureRequestList, new CameraCaptureSession.CaptureCallback() {
+                @Override
+                public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+                    Log.d("Burst", "Burst photo captured");
+                }
+
+                @Override
+                public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
+                    Log.d("Burst", "Burst capture sequence completed.");
+                }
+
+            }, null);
+        }
+        catch (CameraAccessException e){
             e.printStackTrace();
         }
     }
